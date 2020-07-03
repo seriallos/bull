@@ -8,6 +8,7 @@
   - [Queue#resume](#queueresume)
   - [Queue#whenCurrentJobsFinished](#queuewhencurrentjobsfinished)
   - [Queue#count](#queuecount)
+  - [Queue#removeJobs](#queueremovejobs)
   - [Queue#empty](#queueempty)
   - [Queue#clean](#queueclean)
   - [Queue#close](#queueclose)
@@ -308,7 +309,7 @@ pause(isLocal?: boolean, doNotWaitActive?: boolean): Promise
 
 Returns a promise that resolves when the queue is paused. A paused queue will not process new jobs until resumed, but current jobs being processed will continue until they are finalized. The pause can be either global or local. If global, all workers in all queue instances for a given queue will be paused. If local, just this worker will stop processing new jobs after the current lock expires. This can be useful to stop a worker from taking new jobs prior to shutting down.
 
-If `doNotWaitActive` is `true`, `pause` will *not* wait for any active jobs to finish before resolving. Otherwise, `pause` *will* wait for active jobs to finish. See [Queue#whenCurrentJobsFinished](#queuewhencurrentjobsfinished) for more information.
+If `doNotWaitActive` is `true`, `pause` will _not_ wait for any active jobs to finish before resolving. Otherwise, `pause` _will_ wait for active jobs to finish. See [Queue#whenCurrentJobsFinished](#queuewhencurrentjobsfinished) for more information.
 
 Pausing a queue that is already paused does nothing.
 
@@ -343,6 +344,25 @@ count(): Promise<number>
 ```
 
 Returns a promise that returns the number of jobs in the queue, waiting or delayed. Since there may be other processes adding or processing jobs, this value may be true only for a very small amount of time.
+
+---
+
+### Queue#removeJobs
+
+```ts
+removeJobs(pattern: string): Promise<void>
+```
+
+Removes all the jobs which jobId matches the given pattern. The pattern must follow redis glob-style pattern (syntax)[https://redis.io/commands/keys]
+
+Example:
+```js
+myQueue.removeJobs('?oo*').then(function() {
+  console.log('done removing jobs');
+});
+```
+
+Will remove jobs with ids such as: "boo", "foofighter", etc.
 
 ---
 
@@ -423,12 +443,12 @@ parameter. If the specified job cannot be located, the promise will be resolved 
 ### Queue#getJobs
 
 ```ts
-getJobs(types: string[], start?: number, end?: number, asc?: boolean): Promise<Job[]>
+getJobs(types: JobStatus[], start?: number, end?: number, asc?: boolean): Promise<Job[]>
 ```
 
-Returns a promise that will return an array of job instances of the given types. Optional parameters for range and ordering are provided. 
+Returns a promise that will return an array of job instances of the given job statuses. Optional parameters for range and ordering are provided. 
 
-Note: The `start` and `end` options are applied **per job type**. For example, if there are 10 jobs in state `completed` and 10 jobs in state `active`, `getJobs(['completed', 'active'], 0, 4)` will yield an array with 10 entries, representing the first 5 completed jobs (0 - 4) and the first 5 active jobs (0 - 4).
+Note: The `start` and `end` options are applied **per job statuses**. For example, if there are 10 jobs in state `completed` and 10 jobs in state `active`, `getJobs(['completed', 'active'], 0, 4)` will yield an array with 10 entries, representing the first 5 completed jobs (0 - 4) and the first 5 active jobs (0 - 4).
 
 ---
 
